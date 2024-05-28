@@ -1,0 +1,128 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyNPQi29BE1DZ/PLd6NYrpkW",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/jpetersw/Python-Prep/blob/main/WebScraping_Marketplace_propiedades\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import requests\n",
+        "from bs4 import BeautifulSoup\n",
+        "import pandas as pd\n",
+        "\n",
+        "url_base = \"https://www.lamudi.com.mx/distrito-federal/iztapalapa/comercial/industria-almacen/for-rent/\"#1.Cambiar URL\n",
+        "headers = {\"user-agent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36\"}\n",
+        "\n",
+        "# Función para extraer los datos de una página, no cambiar nada\n",
+        "def extraer_datos(url):\n",
+        "    res = requests.get(url, headers=headers)\n",
+        "    soup = BeautifulSoup(res.text, \"html.parser\")\n",
+        "\n",
+        "    nombres = []\n",
+        "    ubicaciones = []\n",
+        "    precios = []\n",
+        "    metros_cuadrados = []\n",
+        "    urls_imagenes = []\n",
+        "\n",
+        "    nombre_inmueble = soup.find_all(\"div\", class_=\"listing-card__title\")\n",
+        "    for nom_inm in nombre_inmueble:\n",
+        "        nombres.append(nom_inm.get_text(strip=True))\n",
+        "\n",
+        "    ubicacion_all = soup.find_all(\"div\", class_=\"location__text\")\n",
+        "    for ubicacion in ubicacion_all:\n",
+        "        ubicaciones.append(ubicacion.get_text(strip=True))\n",
+        "\n",
+        "    precios_html = soup.find_all(\"div\", class_=\"price\")\n",
+        "    for precio in precios_html:\n",
+        "        precios.append(precio.get_text(strip=True))\n",
+        "\n",
+        "    mts2 = soup.find_all(class_='property__number')\n",
+        "    for m2 in mts2:\n",
+        "        text = m2.text.strip()\n",
+        "        if 'm²' in text:\n",
+        "            metros_cuadrados.append(m2.get_text(strip=True))\n",
+        "\n",
+        "    img_tags = soup.find_all('img', class_='swiper-lazy')\n",
+        "    for img_tag in img_tags:\n",
+        "        if img_tag.has_attr('src'):\n",
+        "            urls_imagenes.append(img_tag['src'])\n",
+        "\n",
+        "    return nombres, ubicaciones, precios, metros_cuadrados, urls_imagenes\n",
+        "\n",
+        "# Número máximo de páginas a recorrer\n",
+        "max_paginas = 4  # 2. Cambiar el numero de paginas que te salga en el filtro de la web\n",
+        "\n",
+        "# Número de página actual\n",
+        "pagina_actual = 1\n",
+        "\n",
+        "# Listas para almacenar todos los datos de todas las páginas\n",
+        "all_nombres = []\n",
+        "all_ubicaciones = []\n",
+        "all_precios = []\n",
+        "all_metros_cuadrados = []\n",
+        "all_urls_imagenes = []\n",
+        "\n",
+        "while pagina_actual <= max_paginas:\n",
+        "    # Actualizar la URL con el número de página actual\n",
+        "    url_pagina = f\"{url_base}&page={pagina_actual}\"\n",
+        "\n",
+        "    # Extraer los datos de la página actual\n",
+        "    nombres, ubicaciones, precios, metros_cuadrados, urls_imagenes = extraer_datos(url_pagina)\n",
+        "\n",
+        "    # Agregar los datos de la página actual a las listas generales\n",
+        "    all_nombres.extend(nombres)\n",
+        "    all_ubicaciones.extend(ubicaciones)\n",
+        "    all_precios.extend(precios)\n",
+        "    all_metros_cuadrados.extend(metros_cuadrados)\n",
+        "    all_urls_imagenes.extend(urls_imagenes)\n",
+        "\n",
+        "    # Incrementar el contador de página actual para pasar a la siguiente página\n",
+        "    pagina_actual += 1\n",
+        "\n",
+        "# Crear un DataFrame con los datos recopilados de todas las páginas\n",
+        "data = {\n",
+        "    'Nombre': all_nombres,\n",
+        "    'Ubicacion': all_ubicaciones,\n",
+        "    'Precio': all_precios,\n",
+        "    'Metros Cuadrados': all_metros_cuadrados,\n",
+        "    'URL de Imagen': all_urls_imagenes\n",
+        "}\n",
+        "\n",
+        "df = pd.DataFrame(data)\n",
+        "\n",
+        "# Guardar el DataFrame en un archivo CSV\n",
+        "df.to_csv('bd_indbauten.csv', index=False)\n",
+        "\n",
+        "print(\"Datos guardados en bd_indbauten.csv\")\n"
+      ],
+      "metadata": {
+        "id": "RMuAd3ttu6lz"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
